@@ -1,26 +1,45 @@
-# Dockerfile
+# Use an official Python runtime as a parent image
+FROM python:3.9-slim
 
-# inherit from this "empty base image", see https://hub.docker.com/_/python/
-FROM python:3.12-alpine
+# Set the working directory in the container
+WORKDIR /app
 
-# take some responsibility for this container
-LABEL org.opencontainers.image.authors="Aarno Aukia <aarno.aukia@vshn.ch>"
+# Set the Transformers cache directory to /app/cache (or any other writable path)
+ENV TRANSFORMERS_CACHE /tmp/cache
 
-# directory to install the app inside the container
-WORKDIR /usr/src/app
-
-# install python dependencies, this will be cached if the requirements.txt file does not change
+# Copy the requirements.txt file into the container
 COPY requirements.txt ./
+
+# Install project dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# copy application source code into container
-COPY app.py .
+# Install poetry (Python package manager)
+# RUN pip install poetry
 
-# drop root privileges when running the application
-USER 1001
+# Copy the pyproject.toml and pyproject.lock files into the container
+COPY pyproject.toml ./
 
-# run this command at run-time
-CMD [ "python", "app.py" ]
+# Install project dependencies using poetry
+# RUN poetry install --no-root --no-dev
 
-# expose this TCP-port
-EXPOSE 8090
+# Copy the rest of the application code into the container
+COPY . .
+
+# Change ownership and permissions of the /app directory
+RUN chmod -R 777 /app
+
+
+# Set permissions for specific directories (adjust as needed)
+RUN mkdir /tmp/cache && chmod -R 777 /tmp/cache
+
+# Copy the script to /tmp
+# COPY start_service.sh /tmp/start_service.sh
+
+# Make the start_service.sh script executable if needed
+# RUN chmod +x start_service.sh
+
+# Expose the port on which your service runs (7860)
+EXPOSE 7860
+
+# Run the start_service.sh script or your application's entry point
+CMD ["./start_service.sh"]
